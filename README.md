@@ -9,6 +9,12 @@ flutter run -d windows   # 執行（按 r 熱重載）
 flutter test             # 測試
 ```
 
+## 網頁版
+
+- 網址：<https://jui-che.github.io/english-study-app/>（iPhone 用 Safari 開啟 →「分享」→「加入主畫面」）
+- 推到 `main` 後，`.github/workflows/deploy.yml` 會自動測試、建置並部署到 GitHub Pages。
+- 網頁版的收藏、待調整、成績存在瀏覽器的 localStorage，與桌面版不同步。
+
 ## 字庫
 
 - `assets/words.json`：手動整理的主題單字組（每組 20 字，附例句）。
