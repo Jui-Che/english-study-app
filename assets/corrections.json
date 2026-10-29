@@ -1,0 +1,7 @@
+{
+  "_說明": "中文解釋的手動修正，會覆蓋字典內容。key 是單字或片語；可填 pos、meaning（簡短解釋，配對遊戲用）、definitions（完整解釋陣列）、example、exampleZh，沒填的欄位沿用字典。",
+  "get along with": {
+    "meaning": "相處；進展",
+    "definitions": ["phr. 與…相處（融洽）", "phr. （工作等）進展"]
+  }
+}
