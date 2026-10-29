@@ -7,6 +7,7 @@ import 'package:vocab_app/data/user_store.dart';
 import 'package:vocab_app/main.dart';
 import 'package:vocab_app/models.dart';
 import 'package:vocab_app/pages/matching_game_page.dart';
+import 'package:vocab_app/pages/mini_mode_page.dart';
 
 import 'helpers.dart';
 
@@ -106,16 +107,16 @@ void main() {
     expect(find.textContaining('開始配對'), findsOneWidget);
   });
 
-  testWidgets('迷你模式：進出時切換置頂小視窗、字卡顯示解釋、鍵盤換字', (tester) async {
+  testWidgets('迷你模式：只複習收藏、上方列只有離開與關閉、鍵盤換字', (tester) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
     tester.view.physicalSize = const Size(1200, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
-    final windowCalls = <Object?>[];
+    final windowCalls = <String>[];
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
       const MethodChannel('vocab_app/window'),
       (call) async {
-        windowCalls.add(call.arguments);
+        windowCalls.add('${call.method}(${call.arguments ?? ''})');
         return null;
       },
     );
@@ -126,10 +127,13 @@ void main() {
     await tester.pumpWidget(VocabApp(repo: repo, store: store));
     await tester.tap(find.byTooltip('迷你模式（縮小並固定在最上層）'));
     await tester.pumpAndSettle();
-    expect(windowCalls, [true]);
-    expect(find.text('我的收藏（2）'), findsOneWidget);
+    expect(windowCalls, ['setCompact(true)']);
+    expect(find.text('我的收藏  1 / 2'), findsOneWidget);
     expect(find.text('breakfast'), findsOneWidget); // 新收藏的在前面
     expect(find.text('點一下或按空白鍵看解釋'), findsOneWidget);
+    // 不再有查詢與來源選單
+    expect(find.byType(DropdownButton<int>), findsNothing);
+    expect(find.byTooltip('查單字'), findsNothing);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.space);
     await tester.pump();
@@ -138,12 +142,36 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.pump();
     expect(find.text('umbrella'), findsOneWidget);
-    expect(find.text('2 / 2'), findsOneWidget);
+    expect(find.text('我的收藏  2 / 2'), findsOneWidget);
     expect(find.text('n. 雨傘'), findsNothing); // 換字後解釋重新蓋起來
+
+    // 按住上方列拖曳 → 交給 Windows 移動視窗
+    await tester.drag(find.text('我的收藏  2 / 2'), const Offset(-50, -50));
+    await tester.pump();
+    expect(windowCalls, contains('startDrag()'));
+
+    await tester.tap(find.byTooltip('關閉程式'));
+    await tester.pump();
+    expect(windowCalls.last, 'close()');
 
     await tester.tap(find.byTooltip('離開迷你模式'));
     await tester.pumpAndSettle();
-    expect(windowCalls, [true, false]);
+    expect(windowCalls.last, 'setCompact(false)');
+    debugDefaultTargetPlatformOverride = null;
+  });
+
+  testWidgets('迷你模式：沒有收藏時提示先收藏', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('vocab_app/window'),
+      (call) async => null,
+    );
+    await tester.pumpWidget(AppScope(
+      repo: repo,
+      store: UserStore.memory(),
+      child: const MaterialApp(home: MiniModePage()),
+    ));
+    expect(find.textContaining('還沒有收藏的單字'), findsOneWidget);
     debugDefaultTargetPlatformOverride = null;
   });
 

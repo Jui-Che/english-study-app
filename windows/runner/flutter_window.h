@@ -39,8 +39,9 @@ class FlutterWindow : public Win32Window {
   std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>>
       window_channel_;
 
-  // Window position and size to restore when leaving compact mode.
+  // Window position, size and style to restore when leaving compact mode.
   WINDOWPLACEMENT saved_placement_{sizeof(WINDOWPLACEMENT)};
+  LONG_PTR saved_style_ = 0;
   bool compact_ = false;
 };
 
