@@ -169,7 +169,7 @@ class _ToFixListState extends State<_ToFixList> {
                 title: Text(key, style: const TextStyle(fontWeight: FontWeight.w600)),
                 subtitle: Text([
                   '需要：${store.toFixKinds(key).map((k) => k.label).join('、')}',
-                  if (word != null) '目前：${word.pos} ${word.meaning}',
+                  if (word != null) '目前：${word.posAndMeaning}',
                   if (note.isNotEmpty) '備註：$note',
                 ].join('\n')),
                 isThreeLine: true,
@@ -206,7 +206,7 @@ String toFixReport(WordRepository repo, UserStore store) {
     lines.add([
       key,
       '需要：${kinds.map((k) => k.label).join('、')}',
-      if (word != null) '目前：${word.pos} ${word.meaning}',
+      if (word != null) '目前：${word.posAndMeaning}',
       if (word != null && kinds.contains(FixKind.example))
         '目前例句：${word.example.isEmpty ? '（無）' : word.example}',
       if (note.isNotEmpty) '備註：$note',

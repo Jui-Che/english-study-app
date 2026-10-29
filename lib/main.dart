@@ -5,14 +5,14 @@ import 'data/user_store.dart';
 import 'data/word_repository.dart';
 import 'pages/home_shell.dart';
 
-Future<void> main() async {
+Future<void> main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
   // 先顯示載入畫面，等它畫出來再開始載入字庫（網頁版載入時畫面無法更新）
   runApp(const _LoadingApp());
   await WidgetsBinding.instance.endOfFrame;
   final repo = await WordRepository.load();
   final store = await UserStore.open();
-  runApp(VocabApp(repo: repo, store: store));
+  runApp(VocabApp(repo: repo, store: store, startInMiniMode: args.contains('--mini')));
 }
 
 ThemeData _theme(Brightness b) => ThemeData(
@@ -21,10 +21,16 @@ ThemeData _theme(Brightness b) => ThemeData(
     );
 
 class VocabApp extends StatelessWidget {
-  const VocabApp({super.key, required this.repo, required this.store});
+  const VocabApp({
+    super.key,
+    required this.repo,
+    required this.store,
+    this.startInMiniMode = false,
+  });
 
   final WordRepository repo;
   final UserStore store;
+  final bool startInMiniMode;
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +42,7 @@ class VocabApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: _theme(Brightness.light),
         darkTheme: _theme(Brightness.dark),
-        home: const HomeShell(),
+        home: HomeShell(startInMiniMode: startInMiniMode),
       ),
     );
   }

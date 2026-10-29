@@ -9,6 +9,13 @@ flutter run -d windows   # 執行（按 r 熱重載）
 flutter test             # 測試
 ```
 
+## 迷你模式（Windows）
+
+- 左側導覽列最下方的按鈕：視窗縮小到螢幕右下角並固定在所有視窗最上層，以字卡方式複習或快速查字。
+- 鍵盤：← → 換字、空白鍵顯示解釋；▶ 自動播放（每 5 秒先顯示解釋、再換下一個）。
+- 直接以迷你模式啟動：`vocab_app.exe --mini`（可做成桌面捷徑）。
+- 置頂與縮放由 `windows/runner/flutter_window.cpp` 的 `vocab_app/window` channel 處理（不用外掛，因此不需開啟 Windows 開發人員模式）。
+
 ## 網頁版
 
 - 網址：<https://jui-che.github.io/english-study-app/>（iPhone 用 Safari 開啟 →「分享」→「加入主畫面」）

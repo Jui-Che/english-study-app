@@ -87,7 +87,7 @@ class _ReportDialogState extends State<_ReportDialog> {
           children: [
             Text(widget.word.word, style: t.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 4),
-            Text('目前：${widget.word.pos} ${widget.word.meaning}'),
+            Text('目前：${widget.word.posAndMeaning}'),
             const SizedBox(height: 16),
             Text('需要處理', style: t.labelLarge),
             const SizedBox(height: 8),

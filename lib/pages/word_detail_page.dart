@@ -62,7 +62,8 @@ class WordDetailPage extends StatelessWidget {
           ],
           const SizedBox(height: 16),
           Text.rich(TextSpan(children: [
-            TextSpan(text: '${word.pos}  ', style: TextStyle(color: t.colorScheme.primary)),
+            if (word.pos.isNotEmpty)
+              TextSpan(text: '${word.pos}  ', style: TextStyle(color: t.colorScheme.primary)),
             TextSpan(text: word.meaning),
           ]), style: t.textTheme.headlineSmall),
           ListenableBuilder(

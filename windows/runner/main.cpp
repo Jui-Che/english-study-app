@@ -27,7 +27,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   FlutterWindow window(project);
   Win32Window::Point origin(10, 10);
   Win32Window::Size size(1280, 720);
-  if (!window.Create(L"vocab_app", origin, size)) {
+  // Window title: the app's Chinese name (U+55AE U+5B57 U+5B78 U+7FD2).
+  if (!window.Create(L"\u55ae\u5b57\u5b78\u7fd2", origin, size)) {
     return EXIT_FAILURE;
   }
   window.SetQuitOnClose(true);

@@ -243,7 +243,7 @@ void main(List<String> args) {
     final key = e['word']!.toLowerCase();
     final lines = toTw(e['translation']!)
         .split(r'\n')
-        .map((l) => l.trim().replaceFirst(RegExp(r'^a\. '), 'adj. '))
+        .map((l) => balanceBrackets(l.trim().replaceFirst(RegExp(r'^a\. '), 'adj. ')))
         .where((l) => l.isNotEmpty)
         .toList();
     final (pos, meaning) = shortMeaning(lines);
@@ -304,11 +304,57 @@ final _posRe = RegExp(r'^((?:[a-z]+\.\s*)+)');
   final first = (main.isEmpty ? lines : main).first;
   final m = _posRe.firstMatch(first);
   final pos = m == null ? '' : m[1]!.trim().split(RegExp(r'\s+')).first;
-  var body = first.substring(m?.end ?? 0).replaceFirst(RegExp(r'^\[[^\]]*\]\s*'), '');
-  final senses = body.split(RegExp(r'[,，;；]')).map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+  final body = first.substring(m?.end ?? 0).replaceFirst(RegExp(r'^\[[^\]]*\]\s*'), '');
+  final senses = splitSenses(body);
   if (senses.isEmpty) return (pos, body.trim());
   final two = senses.take(2).join('；');
   return (pos, two.length <= 10 ? two : senses.first);
+}
+
+const _openers = '([（【<〈', _closers = ')]）】>〉';
+
+/// 修正 ECDICT 原文的括號錯誤：半形、〔〕統一成全形（），並刪掉沒有配對的括號，
+/// 例如「威利(人名）」→「威利（人名）」、「伊頓（姓氏））」→「伊頓（姓氏）」。
+String balanceBrackets(String s) {
+  final text = s.replaceAll('(', '（').replaceAll(')', '）').replaceAll('〔', '（').replaceAll('〕', '）');
+  const pairs = {'）': '（', ']': '[', '】': '【'};
+  final chars = text.split('');
+  final open = <int>[];
+  final drop = <int>{};
+  for (var i = 0; i < chars.length; i++) {
+    final c = chars[i];
+    if (pairs.containsValue(c)) {
+      open.add(i);
+    } else if (pairs.containsKey(c)) {
+      if (open.isNotEmpty && chars[open.last] == pairs[c]) {
+        open.removeLast();
+      } else {
+        drop.add(i);
+      }
+    }
+  }
+  drop.addAll(open);
+  return [for (var i = 0; i < chars.length; i++) if (!drop.contains(i)) chars[i]].join();
+}
+
+/// 依逗號、分號拆成多個意思，但括號裡的不拆：
+/// 「使參與[陷入，牽扯到]; 嬋媛」→ ["使參與[陷入，牽扯到]", "嬋媛"]。
+List<String> splitSenses(String text) {
+  final senses = <String>[];
+  final current = StringBuffer();
+  var depth = 0;
+  for (final ch in text.split('')) {
+    if (_openers.contains(ch)) depth++;
+    if (_closers.contains(ch) && depth > 0) depth--;
+    if (depth == 0 && ',，;；'.contains(ch)) {
+      senses.add(current.toString().trim());
+      current.clear();
+    } else {
+      current.write(ch);
+    }
+  }
+  senses.add(current.toString().trim());
+  return senses.where((s) => s.isNotEmpty).toList();
 }
 
 /// ECDICT 的音標用 ' 表示主重音、, 表示次重音，轉成 IPA 符號並加上斜線。

@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vocab_app/app_scope.dart';
 import 'package:vocab_app/data/user_store.dart';
@@ -102,6 +104,55 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.widgetWithText(ListTile, toefl.groups.first.words.first.word), findsOneWidget);
     expect(find.textContaining('開始配對'), findsOneWidget);
+  });
+
+  testWidgets('迷你模式：進出時切換置頂小視窗、字卡顯示解釋、鍵盤換字', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final windowCalls = <Object?>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('vocab_app/window'),
+      (call) async {
+        windowCalls.add(call.arguments);
+        return null;
+      },
+    );
+    final store = UserStore.memory();
+    await store.toggleFavorite('umbrella');
+    await store.toggleFavorite('breakfast');
+
+    await tester.pumpWidget(VocabApp(repo: repo, store: store));
+    await tester.tap(find.byTooltip('迷你模式（縮小並固定在最上層）'));
+    await tester.pumpAndSettle();
+    expect(windowCalls, [true]);
+    expect(find.text('我的收藏（2）'), findsOneWidget);
+    expect(find.text('breakfast'), findsOneWidget); // 新收藏的在前面
+    expect(find.text('點一下或按空白鍵看解釋'), findsOneWidget);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.space);
+    await tester.pump();
+    expect(find.text('n. 早餐'), findsOneWidget);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pump();
+    expect(find.text('umbrella'), findsOneWidget);
+    expect(find.text('2 / 2'), findsOneWidget);
+    expect(find.text('n. 雨傘'), findsNothing); // 換字後解釋重新蓋起來
+
+    await tester.tap(find.byTooltip('離開迷你模式'));
+    await tester.pumpAndSettle();
+    expect(windowCalls, [true, false]);
+    debugDefaultTargetPlatformOverride = null;
+  });
+
+  testWidgets('網頁版與非 Windows 不顯示迷你模式按鈕', (tester) async {
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(VocabApp(repo: repo, store: UserStore.memory()));
+    expect(find.byTooltip('迷你模式（縮小並固定在最上層）'), findsNothing);
   });
 
   testWidgets('配對：兩個字中文解釋相同時，配哪一張都算對', (tester) async {

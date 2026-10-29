@@ -1,8 +1,21 @@
 #include "flutter_window.h"
 
+#include <flutter/standard_method_codec.h>
+#include <flutter_windows.h>
+
 #include <optional>
 
 #include "flutter/generated_plugin_registrant.h"
+
+namespace {
+
+// Size of the compact window and its gap from the screen corner, in logical
+// pixels.
+constexpr int kCompactWidth = 360;
+constexpr int kCompactHeight = 560;
+constexpr int kCompactMargin = 16;
+
+}  // namespace
 
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
     : project_(project) {}
@@ -27,6 +40,27 @@ bool FlutterWindow::OnCreate() {
   RegisterPlugins(flutter_controller_->engine());
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
+  window_channel_ =
+      std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
+          flutter_controller_->engine()->messenger(), "vocab_app/window",
+          &flutter::StandardMethodCodec::GetInstance());
+  window_channel_->SetMethodCallHandler(
+      [this](const flutter::MethodCall<flutter::EncodableValue>& call,
+             std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>>
+                 result) {
+        if (call.method_name() == "setCompact") {
+          const auto* compact = std::get_if<bool>(call.arguments());
+          if (!compact) {
+            result->Error("bad_args", "Expected a bool.");
+            return;
+          }
+          SetCompact(*compact);
+          result->Success();
+        } else {
+          result->NotImplemented();
+        }
+      });
+
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
     this->Show();
   });
@@ -39,7 +73,40 @@ bool FlutterWindow::OnCreate() {
   return true;
 }
 
+void FlutterWindow::SetCompact(bool compact) {
+  HWND hwnd = GetHandle();
+  if (!hwnd || compact == compact_) {
+    return;
+  }
+  compact_ = compact;
+  if (!compact) {
+    SetWindowPos(hwnd, HWND_NOTOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+    SetWindowPlacement(hwnd, &saved_placement_);
+    return;
+  }
+
+  saved_placement_.length = sizeof(WINDOWPLACEMENT);
+  GetWindowPlacement(hwnd, &saved_placement_);
+  if (IsZoomed(hwnd) || IsIconic(hwnd)) {
+    ShowWindow(hwnd, SW_RESTORE);
+  }
+
+  // Bottom-right corner of the monitor the window is on, like the Clock app's
+  // compact overlay.
+  HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+  const double scale = FlutterDesktopGetDpiForMonitor(monitor) / 96.0;
+  MONITORINFO info{sizeof(MONITORINFO)};
+  GetMonitorInfo(monitor, &info);
+  const int width = static_cast<int>(kCompactWidth * scale);
+  const int height = static_cast<int>(kCompactHeight * scale);
+  const int margin = static_cast<int>(kCompactMargin * scale);
+  SetWindowPos(hwnd, HWND_TOPMOST, info.rcWork.right - width - margin,
+               info.rcWork.bottom - height - margin, width, height,
+               SWP_SHOWWINDOW);
+}
+
 void FlutterWindow::OnDestroy() {
+  window_channel_ = nullptr;
   if (flutter_controller_) {
     flutter_controller_ = nullptr;
   }

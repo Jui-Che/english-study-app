@@ -15,7 +15,7 @@ class WordTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       title: Text(word.word, style: const TextStyle(fontWeight: FontWeight.w600)),
-      subtitle: Text('${word.pos} ${word.meaning}'),
+      subtitle: Text(word.posAndMeaning),
       trailing: FavoriteButton(word: word.word),
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => WordDetailPage(word: word)),

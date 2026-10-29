@@ -125,6 +125,9 @@ class WordRepository {
 
   int get size => _byWord.length;
 
+  /// 所有單字與片語（不保證順序）。
+  Iterable<Word> get allEntries => _byWord.values;
+
   Word? find(String word) => _byWord[word.toLowerCase()];
 
   /// 這個字在 corrections.json 裡修正過哪些項目。

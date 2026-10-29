@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 
+import '../platform/window_mode.dart';
 import 'favorites_page.dart';
+import 'mini_mode_page.dart';
 import 'search_page.dart';
 import 'study_page.dart';
 
 /// 主畫面：查詢 / 收藏 / 學習 三個分頁。
 /// 寬螢幕（桌面）用左側導覽列，窄螢幕（手機）用底部導覽列。
 class HomeShell extends StatefulWidget {
-  const HomeShell({super.key});
+  const HomeShell({super.key, this.startInMiniMode = false});
+
+  /// 用 `vocab_app.exe --mini` 啟動時，直接進入迷你模式。
+  final bool startInMiniMode;
 
   @override
   State<HomeShell> createState() => _HomeShellState();
@@ -21,6 +26,18 @@ class _HomeShellState extends State<HomeShell> {
     (icon: Icons.star_outline, label: '收藏'),
     (icon: Icons.school_outlined, label: '學習'),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.startInMiniMode && supportsMiniMode) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _openMiniMode());
+    }
+  }
+
+  void _openMiniMode() => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const MiniModePage()),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -42,6 +59,21 @@ class _HomeShellState extends State<HomeShell> {
                 for (final d in _destinations)
                   NavigationRailDestination(icon: Icon(d.icon), label: Text(d.label)),
               ],
+              trailing: supportsMiniMode
+                  ? Expanded(
+                      child: Align(
+                        alignment: Alignment.bottomCenter,
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: IconButton(
+                            tooltip: '迷你模式（縮小並固定在最上層）',
+                            icon: const Icon(Icons.picture_in_picture_alt),
+                            onPressed: _openMiniMode,
+                          ),
+                        ),
+                      ),
+                    )
+                  : null,
             ),
             const VerticalDivider(width: 1),
             Expanded(child: body),

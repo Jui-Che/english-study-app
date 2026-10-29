@@ -53,6 +53,9 @@ class Word {
 
   String get key => word.toLowerCase();
 
+  /// 「n. 蘋果」；沒有詞性時只有解釋。
+  String get posAndMeaning => pos.isEmpty ? meaning : '$pos $meaning';
+
   bool get isPhrase => word.contains(' ');
 
   List<String> get definitions =>
