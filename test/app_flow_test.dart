@@ -160,6 +160,51 @@ void main() {
     debugDefaultTargetPlatformOverride = null;
   });
 
+  testWidgets('迷你模式：考試單字組可以用迷你模式複習，主題單字組沒有這個按鈕', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    tester.view.physicalSize = const Size(1200, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final windowCalls = <String>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('vocab_app/window'),
+      (call) async {
+        windowCalls.add('${call.method}(${call.arguments ?? ''})');
+        return null;
+      },
+    );
+    final toefl = repo.examTracks.firstWhere((t) => t.id == 'toefl');
+    final first = toefl.groups.first;
+
+    await tester.pumpWidget(VocabApp(repo: repo, store: UserStore.memory()));
+    await tester.tap(find.text('學習'));
+    await tester.pumpAndSettle();
+
+    // 主題單字組：沒有迷你模式按鈕
+    await tester.tap(find.text(repo.groups.first.name));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('用迷你模式複習這組'), findsNothing);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    // TOEFL 第 1 組：有，按下去複習這組的 20 個字
+    await tester.tap(find.text('TOEFL'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(first.name));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('用迷你模式複習這組'));
+    await tester.pumpAndSettle();
+    expect(windowCalls, ['setCompact(true)']);
+    expect(find.text('${first.name}  1 / ${first.words.length}'), findsOneWidget);
+    expect(find.text(first.words.first.word), findsOneWidget);
+
+    await tester.tap(find.byTooltip('離開迷你模式'));
+    await tester.pumpAndSettle();
+    expect(windowCalls.last, 'setCompact(false)');
+    expect(find.text(first.name), findsOneWidget); // 回到這組的頁面
+    debugDefaultTargetPlatformOverride = null;
+  });
+
   testWidgets('迷你模式：沒有收藏時提示先收藏', (tester) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(

@@ -9,10 +9,13 @@ import '../platform/window_mode.dart';
 import '../widgets/copy.dart';
 import 'word_detail_page.dart' show highlight;
 
-/// 迷你模式：視窗縮小、沒有標題列並固定在最上層（Windows），用字卡複習「我的收藏」。
+/// 迷你模式：視窗縮小、沒有標題列並固定在最上層（Windows），用字卡複習「我的收藏」或一組考試單字。
 /// 上方列可以按住拖曳視窗。鍵盤：← → 換字、空白鍵顯示解釋。
 class MiniModePage extends StatefulWidget {
-  const MiniModePage({super.key});
+  const MiniModePage({super.key, this.group});
+
+  /// 要複習的單字組；沒給就是「我的收藏」。
+  final WordGroup? group;
 
   @override
   State<MiniModePage> createState() => _MiniModePageState();
@@ -36,7 +39,7 @@ class _MiniModePageState extends State<MiniModePage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _words ??= _loadFavorites();
+    _words ??= _loadWords();
   }
 
   @override
@@ -46,10 +49,14 @@ class _MiniModePageState extends State<MiniModePage> {
     super.dispose();
   }
 
-  /// 新收藏的在前面。
-  List<Word> _loadFavorites() {
+  String get _title => widget.group?.name ?? '我的收藏';
+
+  /// 單字組照原本順序；收藏則是新收藏的在前面。
+  List<Word> _loadWords() {
     final scope = AppScope.of(context);
-    final words = scope.store.favorites.reversed.map(scope.repo.find).whereType<Word>().toList();
+    final words = widget.group != null
+        ? [...widget.group!.words]
+        : scope.store.favorites.reversed.map(scope.repo.find).whereType<Word>().toList();
     return _shuffled ? (words..shuffle()) : words;
   }
 
@@ -79,7 +86,7 @@ class _MiniModePageState extends State<MiniModePage> {
   void _toggleShuffle() {
     setState(() {
       _shuffled = !_shuffled;
-      _words = _loadFavorites();
+      _words = _loadWords();
       _index = 0;
       _revealed = false;
     });
@@ -94,7 +101,7 @@ class _MiniModePageState extends State<MiniModePage> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _TopBar(
-              label: words.isEmpty ? '我的收藏' : '我的收藏  ${_index + 1} / ${words.length}',
+              label: words.isEmpty ? _title : '$_title  ${_index + 1} / ${words.length}',
             ),
             Expanded(
               child: words.isEmpty

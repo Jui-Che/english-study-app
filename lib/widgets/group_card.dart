@@ -6,9 +6,12 @@ import '../pages/group_page.dart';
 
 /// 一組單字的卡片：名稱、前幾個字、最佳成績；玩過的會打勾。
 class GroupCard extends StatelessWidget {
-  const GroupCard({super.key, required this.group});
+  const GroupCard({super.key, required this.group, this.allowMiniMode = false});
 
   final WordGroup group;
+
+  /// 傳給 [GroupPage.allowMiniMode]。
+  final bool allowMiniMode;
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +30,7 @@ class GroupCard extends StatelessWidget {
             ? const Icon(Icons.chevron_right)
             : const Icon(Icons.check_circle, color: Colors.green),
         onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => GroupPage(group: group)),
+          MaterialPageRoute(builder: (_) => GroupPage(group: group, allowMiniMode: allowMiniMode)),
         ),
       ),
     );

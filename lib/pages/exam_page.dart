@@ -27,7 +27,7 @@ class ExamPage extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
             itemCount: groups.length + 1,
             itemBuilder: (context, i) {
-              if (i > 0) return GroupCard(group: groups[i - 1]);
+              if (i > 0) return GroupCard(group: groups[i - 1], allowMiniMode: true);
               return Padding(
                 padding: const EdgeInsets.only(bottom: 16),
                 child: Column(
@@ -55,7 +55,7 @@ class ExamPage extends StatelessWidget {
                   icon: const Icon(Icons.play_arrow),
                   label: Text('繼續：${next.name}'),
                   onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => GroupPage(group: next)),
+                    MaterialPageRoute(builder: (_) => GroupPage(group: next, allowMiniMode: true)),
                   ),
                 ),
         );
