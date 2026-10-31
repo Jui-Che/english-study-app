@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui' show Size;
 
 import 'package:flutter/foundation.dart';
 
@@ -21,6 +22,9 @@ class UserStore extends ChangeNotifier {
   final Map<String, DateTime> _favorites = {};
   final Map<String, BestScore> _bestScores = {};
 
+  /// 使用者調整過的迷你模式視窗大小（邏輯像素）。
+  Size? _miniWindowSize;
+
   /// 等待修正的字 → 要處理的項目（解釋、例句）、使用者的備註、回報時間。
   final Map<String, ({Set<FixKind> kinds, String note, DateTime at})> _toFix = {};
 
@@ -39,6 +43,9 @@ class UserStore extends ChangeNotifier {
       favs.forEach((k, v) => _favorites[k] = DateTime.parse(v as String));
       final scores = (data['bestScores'] as Map<String, dynamic>? ?? {});
       scores.forEach((k, v) => _bestScores[k] = BestScore.fromJson(v as Map<String, dynamic>));
+      if (data['miniWindow'] case {'width': final num w, 'height': final num h}) {
+        _miniWindowSize = Size(w.toDouble(), h.toDouble());
+      }
       final toFix = (data['toFix'] as Map<String, dynamic>? ?? {});
       toFix.forEach((k, v) {
         final m = v as Map<String, dynamic>;
@@ -58,6 +65,7 @@ class UserStore extends ChangeNotifier {
     await _storage?.write(jsonEncode({
       'favorites': _favorites.map((k, v) => MapEntry(k, v.toIso8601String())),
       'bestScores': _bestScores.map((k, v) => MapEntry(k, v.toJson())),
+      if (_miniWindowSize case final size?) 'miniWindow': {'width': size.width, 'height': size.height},
       'toFix': _toFix.map((k, v) => MapEntry(k, {
             'kinds': [for (final kind in v.kinds) kind.name],
             'note': v.note,
@@ -105,6 +113,14 @@ class UserStore extends ChangeNotifier {
   Future<void> removeToFix(Iterable<String> words) async {
     words.toList().forEach(_toFix.remove);
     notifyListeners();
+    await _save();
+  }
+
+  Size? get miniWindowSize => _miniWindowSize;
+
+  Future<void> setMiniWindowSize(Size size) async {
+    if (size == _miniWindowSize) return;
+    _miniWindowSize = size;
     await _save();
   }
 

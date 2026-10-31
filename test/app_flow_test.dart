@@ -127,7 +127,7 @@ void main() {
     await tester.pumpWidget(VocabApp(repo: repo, store: store));
     await tester.tap(find.byTooltip('迷你模式（縮小並固定在最上層）'));
     await tester.pumpAndSettle();
-    expect(windowCalls, ['setCompact(true)']);
+    expect(windowCalls, ['setCompact({compact: true})']);
     expect(find.text('我的收藏  1 / 2'), findsOneWidget);
     expect(find.text('breakfast'), findsOneWidget); // 新收藏的在前面
     expect(find.text('點一下或按空白鍵看解釋'), findsOneWidget);
@@ -150,13 +150,21 @@ void main() {
     await tester.pump();
     expect(windowCalls, contains('startDrag()'));
 
+    // 按住看不見的邊緣、角落 → 交給 Windows 調整大小（HTBOTTOMRIGHT = 17、HTLEFT = 10）
+    await tester.dragFrom(const Offset(1197, 797), const Offset(-30, -30));
+    await tester.pump();
+    expect(windowCalls.last, 'startResize(17)');
+    await tester.dragFrom(const Offset(2, 400), const Offset(30, 0));
+    await tester.pump();
+    expect(windowCalls.last, 'startResize(10)');
+
     await tester.tap(find.byTooltip('關閉程式'));
     await tester.pump();
     expect(windowCalls.last, 'close()');
 
     await tester.tap(find.byTooltip('離開迷你模式'));
     await tester.pumpAndSettle();
-    expect(windowCalls.last, 'setCompact(false)');
+    expect(windowCalls.last, 'setCompact({compact: false})');
     debugDefaultTargetPlatformOverride = null;
   });
 
@@ -194,14 +202,47 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('用迷你模式複習這組'));
     await tester.pumpAndSettle();
-    expect(windowCalls, ['setCompact(true)']);
+    expect(windowCalls, ['setCompact({compact: true})']);
     expect(find.text('${first.name}  1 / ${first.words.length}'), findsOneWidget);
     expect(find.text(first.words.first.word), findsOneWidget);
 
     await tester.tap(find.byTooltip('離開迷你模式'));
     await tester.pumpAndSettle();
-    expect(windowCalls.last, 'setCompact(false)');
+    expect(windowCalls.last, 'setCompact({compact: false})');
     expect(find.text(first.name), findsOneWidget); // 回到這組的頁面
+    debugDefaultTargetPlatformOverride = null;
+  });
+
+  testWidgets('迷你模式：記住使用者調整過的視窗大小，下次沿用', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    final windowCalls = <String>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      const MethodChannel('vocab_app/window'),
+      (call) async {
+        windowCalls.add('${call.method}(${call.arguments ?? ''})');
+        // 模擬使用者把迷你視窗拉成 300 x 380 後離開
+        final args = call.arguments as Map;
+        return args['compact'] == false ? {'width': 300.0, 'height': 380.0} : null;
+      },
+    );
+    final store = UserStore.memory();
+    Future<void> openAndClose() async {
+      await tester.pumpWidget(AppScope(
+        repo: repo,
+        store: store,
+        child: const MaterialApp(home: MiniModePage()),
+      ));
+      await tester.pumpWidget(const SizedBox()); // 關掉迷你模式頁
+      await tester.pump();
+    }
+
+    await openAndClose();
+    expect(windowCalls.first, 'setCompact({compact: true})'); // 第一次用預設大小
+    expect(store.miniWindowSize, const Size(300, 380));
+
+    windowCalls.clear();
+    await openAndClose();
+    expect(windowCalls.first, 'setCompact({compact: true, width: 300.0, height: 380.0})');
     debugDefaultTargetPlatformOverride = null;
   });
 

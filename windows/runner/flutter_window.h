@@ -7,6 +7,8 @@
 #include <flutter/method_channel.h>
 
 #include <memory>
+#include <optional>
+#include <utility>
 
 #include "win32_window.h"
 
@@ -25,9 +27,13 @@ class FlutterWindow : public Win32Window {
                          LPARAM const lparam) noexcept override;
 
  private:
-  // Switches between the normal window and the small always-on-top window
-  // used by the app's mini review mode.
-  void SetCompact(bool compact);
+  // Switches to the small, borderless, always-on-top window used by the app's
+  // mini review mode, |width| x |height| logical pixels.
+  void EnterCompact(double width, double height);
+
+  // Restores the normal window. Returns the compact window's logical size
+  // before restoring, or nullopt if it was not in compact mode.
+  std::optional<std::pair<double, double>> LeaveCompact();
 
   // The project to run.
   flutter::DartProject project_;

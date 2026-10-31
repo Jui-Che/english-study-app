@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../app_scope.dart';
+import '../data/user_store.dart';
 import '../models.dart';
 import '../platform/window_mode.dart';
 import '../widgets/copy.dart';
@@ -30,22 +31,26 @@ class _MiniModePageState extends State<MiniModePage> {
   bool _shuffled = false;
   Timer? _auto;
 
-  @override
-  void initState() {
-    super.initState();
-    setCompactWindow(true);
-  }
+  late UserStore _store;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _words ??= _loadWords();
+    _store = AppScope.of(context).store;
+    if (_words == null) {
+      _words = _loadWords();
+      enterCompactWindow(size: _store.miniWindowSize);
+    }
   }
 
   @override
   void dispose() {
     _auto?.cancel();
-    setCompactWindow(false);
+    // 記住使用者調整過的大小，下次進迷你模式沿用
+    final store = _store;
+    leaveCompactWindow().then((size) {
+      if (size != null) store.setMiniWindowSize(size);
+    });
     super.dispose();
   }
 
@@ -56,7 +61,10 @@ class _MiniModePageState extends State<MiniModePage> {
     final scope = AppScope.of(context);
     final words = widget.group != null
         ? [...widget.group!.words]
-        : scope.store.favorites.reversed.map(scope.repo.find).whereType<Word>().toList();
+        : scope.store.favorites.reversed
+              .map(scope.repo.find)
+              .whereType<Word>()
+              .toList();
     return _shuffled ? (words..shuffle()) : words;
   }
 
@@ -78,7 +86,10 @@ class _MiniModePageState extends State<MiniModePage> {
         _auto = null;
       } else {
         // 每隔幾秒：先顯示解釋，下一次換下一個字
-        _auto = Timer.periodic(_autoInterval, (_) => _revealed ? _move(1) : _toggleReveal());
+        _auto = Timer.periodic(
+          _autoInterval,
+          (_) => _revealed ? _move(1) : _toggleReveal(),
+        );
       }
     });
   }
@@ -96,17 +107,22 @@ class _MiniModePageState extends State<MiniModePage> {
   Widget build(BuildContext context) {
     final words = _words!;
     return Scaffold(
-      body: SafeArea(
+      body: _ResizeFrame(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _TopBar(
-              label: words.isEmpty ? _title : '$_title  ${_index + 1} / ${words.length}',
+              label: words.isEmpty
+                  ? _title
+                  : '$_title  ${_index + 1} / ${words.length}',
             ),
             Expanded(
               child: words.isEmpty
                   ? const Center(
-                      child: Text('還沒有收藏的單字\n先在一般視窗點 ☆ 收藏', textAlign: TextAlign.center),
+                      child: Text(
+                        '還沒有收藏的單字\n先在一般視窗點 ☆ 收藏',
+                        textAlign: TextAlign.center,
+                      ),
                     )
                   : _buildCard(context, words[_index]),
             ),
@@ -143,23 +159,42 @@ class _MiniModePageState extends State<MiniModePage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(word.word,
-                              style: t.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold)),
+                          Text(
+                            word.word,
+                            style: t.textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                           if (word.phonetic.isNotEmpty)
-                            Text(word.phonetic, style: TextStyle(color: t.colorScheme.outline)),
+                            Text(
+                              word.phonetic,
+                              style: TextStyle(color: t.colorScheme.outline),
+                            ),
                           const SizedBox(height: 12),
                           if (_revealed)
-                            Text(word.posAndMeaning, style: t.textTheme.titleLarge)
+                            Text(
+                              word.posAndMeaning,
+                              style: t.textTheme.titleLarge,
+                            )
                           else
-                            Text('點一下或按空白鍵看解釋', style: TextStyle(color: t.colorScheme.outline)),
+                            Text(
+                              '點一下或按空白鍵看解釋',
+                              style: TextStyle(color: t.colorScheme.outline),
+                            ),
                           if (word.example.isNotEmpty) ...[
                             const SizedBox(height: 12),
                             Text.rich(
-                              highlight(word.example, [word.word, ...word.forms.values], t.colorScheme.primary),
+                              highlight(word.example, [
+                                word.word,
+                                ...word.forms.values,
+                              ], t.colorScheme.primary),
                               style: t.textTheme.bodyLarge,
                             ),
                             if (_revealed)
-                              Text(word.exampleZh, style: TextStyle(color: t.colorScheme.outline)),
+                              Text(
+                                word.exampleZh,
+                                style: TextStyle(color: t.colorScheme.outline),
+                              ),
                           ],
                         ],
                       ),
@@ -170,7 +205,11 @@ class _MiniModePageState extends State<MiniModePage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  IconButton(tooltip: '上一個（←）', icon: const Icon(Icons.chevron_left), onPressed: () => _move(-1)),
+                  IconButton(
+                    tooltip: '上一個（←）',
+                    icon: const Icon(Icons.chevron_left),
+                    onPressed: () => _move(-1),
+                  ),
                   IconButton(
                     tooltip: _auto == null ? '自動播放' : '停止自動播放',
                     icon: Icon(_auto == null ? Icons.play_arrow : Icons.pause),
@@ -178,16 +217,119 @@ class _MiniModePageState extends State<MiniModePage> {
                   ),
                   IconButton(
                     tooltip: _shuffled ? '依收藏順序' : '隨機順序',
-                    icon: Icon(Icons.shuffle, color: _shuffled ? t.colorScheme.primary : null),
+                    icon: Icon(
+                      Icons.shuffle,
+                      color: _shuffled ? t.colorScheme.primary : null,
+                    ),
                     onPressed: _toggleShuffle,
                   ),
-                  IconButton(tooltip: '下一個（→）', icon: const Icon(Icons.chevron_right), onPressed: () => _move(1)),
+                  IconButton(
+                    tooltip: '下一個（→）',
+                    icon: const Icon(Icons.chevron_right),
+                    onPressed: () => _move(1),
+                  ),
                 ],
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+/// 迷你視窗沒有可見的邊框：在四邊與四角放看不見的細條，滑鼠移過去顯示調整大小的游標，
+/// 按住拖曳就交給 Windows 調整視窗大小。
+class _ResizeFrame extends StatelessWidget {
+  const _ResizeFrame({required this.child});
+
+  final Widget child;
+
+  static const _edge = 6.0, _corner = 12.0;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget handle(ResizeEdge edge, MouseCursor cursor) => MouseRegion(
+      cursor: cursor,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onPanStart: (_) => startWindowResize(edge),
+      ),
+    );
+    return Stack(
+      children: [
+        Positioned.fill(child: child),
+        // 四邊
+        Positioned(
+          left: _corner,
+          right: _corner,
+          top: 0,
+          height: _edge,
+          child: handle(ResizeEdge.top, SystemMouseCursors.resizeUpDown),
+        ),
+        Positioned(
+          left: _corner,
+          right: _corner,
+          bottom: 0,
+          height: _edge,
+          child: handle(ResizeEdge.bottom, SystemMouseCursors.resizeUpDown),
+        ),
+        Positioned(
+          top: _corner,
+          bottom: _corner,
+          left: 0,
+          width: _edge,
+          child: handle(ResizeEdge.left, SystemMouseCursors.resizeLeftRight),
+        ),
+        Positioned(
+          top: _corner,
+          bottom: _corner,
+          right: 0,
+          width: _edge,
+          child: handle(ResizeEdge.right, SystemMouseCursors.resizeLeftRight),
+        ),
+        // 四角
+        Positioned(
+          left: 0,
+          top: 0,
+          width: _corner,
+          height: _corner,
+          child: handle(
+            ResizeEdge.topLeft,
+            SystemMouseCursors.resizeUpLeftDownRight,
+          ),
+        ),
+        Positioned(
+          right: 0,
+          bottom: 0,
+          width: _corner,
+          height: _corner,
+          child: handle(
+            ResizeEdge.bottomRight,
+            SystemMouseCursors.resizeUpLeftDownRight,
+          ),
+        ),
+        Positioned(
+          right: 0,
+          top: 0,
+          width: _corner,
+          height: _corner,
+          child: handle(
+            ResizeEdge.topRight,
+            SystemMouseCursors.resizeUpRightDownLeft,
+          ),
+        ),
+        Positioned(
+          left: 0,
+          bottom: 0,
+          width: _corner,
+          height: _corner,
+          child: handle(
+            ResizeEdge.bottomLeft,
+            SystemMouseCursors.resizeUpRightDownLeft,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -211,7 +353,12 @@ class _TopBar extends StatelessWidget {
           children: [
             const SizedBox(width: 12),
             Expanded(
-              child: Text(label, style: t.textTheme.labelLarge?.copyWith(color: t.colorScheme.outline)),
+              child: Text(
+                label,
+                style: t.textTheme.labelLarge?.copyWith(
+                  color: t.colorScheme.outline,
+                ),
+              ),
             ),
             IconButton(
               style: iconStyle,
