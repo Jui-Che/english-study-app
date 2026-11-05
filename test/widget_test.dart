@@ -35,6 +35,11 @@ void main() {
     expect(rounds.map((r) => r.length), [5, 5, 5, 5]);
   });
 
+  test('已學過的排到最後，兩邊各自維持原本順序', () {
+    expect(unfinishedFirst([1, 2, 3, 4, 5], (n) => n.isOdd), [2, 4, 1, 3, 5]);
+    expect(unfinishedFirst(<int>[], (n) => true), isEmpty);
+  });
+
   test('最後只剩 1 個字時併入前一回合', () {
     final rounds = splitRounds(List.generate(11, (i) => i));
     expect(rounds.map((r) => r.length), [5, 6]);

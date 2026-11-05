@@ -10,6 +10,12 @@ List<List<T>> chunk<T>(List<T> items, int size) => [
         items.sublist(i, i + size > items.length ? items.length : i + size),
     ];
 
+/// 還沒學過的排前面、已經學過的移到最後，兩邊各自維持原本順序。
+List<T> unfinishedFirst<T>(Iterable<T> items, bool Function(T) isDone) => [
+      ...items.where((i) => !isDone(i)),
+      ...items.where(isDone),
+    ];
+
 /// 把一組單字切成配對回合；最後只剩 1 個字時併入前一回合（1 對無法配對）。
 List<List<T>> splitRounds<T>(List<T> words, {int size = pairsPerRound}) {
   final rounds = chunk(words, size);

@@ -23,13 +23,16 @@ class StudyPage extends StatelessWidget {
             for (final (i, words) in chunk(favWords, groupSize).indexed)
               WordGroup(id: 'fav-${i + 1}', name: '我的收藏 第 ${i + 1} 組', words: words),
           ];
+          // 已經學過（玩過配對）的組移到各區最下面
+          List<WordGroup> sorted(List<WordGroup> groups) =>
+              unfinishedFirst(groups, (g) => scope.store.bestScore(g.id) != null);
           final t = Theme.of(context).textTheme;
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
               Text('主題單字', style: t.titleLarge),
               const SizedBox(height: 8),
-              for (final g in scope.repo.groups) GroupCard(group: g),
+              for (final g in sorted(scope.repo.groups)) GroupCard(group: g),
               const SizedBox(height: 24),
               Text('考試單字', style: t.titleLarge),
               const SizedBox(height: 8),
@@ -44,7 +47,7 @@ class StudyPage extends StatelessWidget {
                   subtitle: const Text('依日常使用頻率排序，越前面越常用'),
                   shape: const Border(),
                   children: [
-                    for (final g in scope.repo.phraseGroups)
+                    for (final g in sorted(scope.repo.phraseGroups))
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8),
                         child: GroupCard(group: g),
@@ -61,7 +64,7 @@ class StudyPage extends StatelessWidget {
                   child: Text('收藏 2 個以上的單字，就會自動出現在這裡。'),
                 )
               else
-                for (final g in favGroups)
+                for (final g in sorted(favGroups))
                   if (g.words.length >= 2) GroupCard(group: g),
             ],
           );

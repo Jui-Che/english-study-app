@@ -8,6 +8,7 @@ import 'package:vocab_app/main.dart';
 import 'package:vocab_app/models.dart';
 import 'package:vocab_app/pages/matching_game_page.dart';
 import 'package:vocab_app/pages/mini_mode_page.dart';
+import 'package:vocab_app/widgets/group_card.dart';
 
 import 'helpers.dart';
 
@@ -134,6 +135,7 @@ void main() {
     // 不再有查詢與來源選單
     expect(find.byType(DropdownButton<int>), findsNothing);
     expect(find.byTooltip('查單字'), findsNothing);
+    expect(find.byIcon(Icons.shuffle), findsNothing);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.space);
     await tester.pump();
@@ -244,6 +246,31 @@ void main() {
     await openAndClose();
     expect(windowCalls.first, 'setCompact({compact: true, width: 300.0, height: 380.0})');
     debugDefaultTargetPlatformOverride = null;
+  });
+
+  testWidgets('學過的單字組移到最下面（主題單字、考試單字）', (tester) async {
+    tester.view.physicalSize = const Size(1200, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final store = UserStore.memory();
+    final first = repo.groups.first, last = repo.groups.last;
+    final toefl = repo.examTracks.firstWhere((t) => t.id == 'toefl');
+    await store.recordScore(first.id, const BestScore(accuracy: 1, seconds: 30));
+    await store.recordScore(toefl.groups.first.id, const BestScore(accuracy: 1, seconds: 30));
+
+    await tester.pumpWidget(VocabApp(repo: repo, store: store));
+    await tester.tap(find.text('學習'));
+    await tester.pumpAndSettle();
+    expect(
+      tester.getTopLeft(find.text(first.name)).dy,
+      greaterThan(tester.getTopLeft(find.text(last.name)).dy),
+    );
+
+    await tester.tap(find.text('TOEFL'));
+    await tester.pumpAndSettle();
+    final cards = find.byType(GroupCard);
+    expect(tester.widget<GroupCard>(cards.first).group.name, 'TOEFL 第 2 組');
+    expect(find.text('繼續：TOEFL 第 2 組'), findsOneWidget);
   });
 
   testWidgets('迷你模式：沒有收藏時提示先收藏', (tester) async {

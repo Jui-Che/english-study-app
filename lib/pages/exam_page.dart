@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../app_scope.dart';
+import '../logic/grouping.dart';
 import '../models.dart';
 import '../widgets/group_card.dart';
 import 'group_page.dart';
@@ -17,7 +18,8 @@ class ExamPage extends StatelessWidget {
     return ListenableBuilder(
       listenable: store,
       builder: (context, _) {
-        final groups = track.groups;
+        // 已經學過（玩過配對）的組移到最下面
+        final groups = unfinishedFirst(track.groups, (g) => store.bestScore(g.id) != null);
         final done = groups.where((g) => store.bestScore(g.id) != null).length;
         final next = groups.where((g) => store.bestScore(g.id) == null).firstOrNull;
         final t = Theme.of(context).textTheme;

@@ -28,7 +28,6 @@ class _MiniModePageState extends State<MiniModePage> {
   List<Word>? _words;
   int _index = 0;
   bool _revealed = false;
-  bool _shuffled = false;
   Timer? _auto;
 
   late UserStore _store;
@@ -59,13 +58,12 @@ class _MiniModePageState extends State<MiniModePage> {
   /// 單字組照原本順序；收藏則是新收藏的在前面。
   List<Word> _loadWords() {
     final scope = AppScope.of(context);
-    final words = widget.group != null
+    return widget.group != null
         ? [...widget.group!.words]
         : scope.store.favorites.reversed
               .map(scope.repo.find)
               .whereType<Word>()
               .toList();
-    return _shuffled ? (words..shuffle()) : words;
   }
 
   void _move(int delta) {
@@ -91,15 +89,6 @@ class _MiniModePageState extends State<MiniModePage> {
           (_) => _revealed ? _move(1) : _toggleReveal(),
         );
       }
-    });
-  }
-
-  void _toggleShuffle() {
-    setState(() {
-      _shuffled = !_shuffled;
-      _words = _loadWords();
-      _index = 0;
-      _revealed = false;
     });
   }
 
@@ -214,14 +203,6 @@ class _MiniModePageState extends State<MiniModePage> {
                     tooltip: _auto == null ? '自動播放' : '停止自動播放',
                     icon: Icon(_auto == null ? Icons.play_arrow : Icons.pause),
                     onPressed: _toggleAuto,
-                  ),
-                  IconButton(
-                    tooltip: _shuffled ? '依收藏順序' : '隨機順序',
-                    icon: Icon(
-                      Icons.shuffle,
-                      color: _shuffled ? t.colorScheme.primary : null,
-                    ),
-                    onPressed: _toggleShuffle,
                   ),
                   IconButton(
                     tooltip: '下一個（→）',
