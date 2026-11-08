@@ -62,7 +62,7 @@ class _SearchPageState extends State<SearchPage> {
   void _showAbout(BuildContext context) => showAboutDialog(
         context: context,
         applicationName: '單字學習',
-        applicationVersion: '0.2',
+        applicationVersion: '1.0.0',
         children: const [
           Text(
             '字典資料：ECDICT（MIT 授權）\n'

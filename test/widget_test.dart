@@ -75,6 +75,10 @@ void main() {
     expect(w.example, isNotEmpty); // 沒修正的欄位沿用字典
     expect(repo.correctedKinds('get along with'), {FixKind.meaning});
     expect(repo.correctedKinds('give up'), isEmpty);
+    // 待調整回報的補例句
+    expect(repo.find('facilitate')!.example, contains('facilitates'));
+    expect(repo.correctedKinds('facilitate'), {FixKind.example});
+    expect(repo.isResolved('courier', {FixKind.example}), isTrue);
     expect(FixKind.resolvedBy({'example': 'x', 'exampleZh': 'y'}), {FixKind.example});
   });
 

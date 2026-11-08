@@ -3,5 +3,14 @@
   "get along with": {
     "meaning": "相處；進展",
     "definitions": ["phr. 與…相處（融洽）", "phr. （工作等）進展"]
+  },
+  "facilitate": {
+    "example": "The new app facilitates learning English.",
+    "exampleZh": "這個新的應用程式讓學英文變得更容易。"
+  },
+  "courier": {
+    "meaning": "快遞員；信差",
+    "example": "The courier delivered the package this morning.",
+    "exampleZh": "快遞員今天早上把包裹送來了。"
   }
 }
